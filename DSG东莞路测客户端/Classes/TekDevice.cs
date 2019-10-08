@@ -20,6 +20,9 @@ namespace DSG东莞路测客户端
 
         public event Action<FreqBscanInfo> OnNewFreq;
 
+        private string freqOrderGuid = "";
+        private object freqOrderGuidlock = new object();
+
         private MTask mTask;
        
         public static Task<TekDevice> SearchDevice()
@@ -65,6 +68,7 @@ namespace DSG东莞路测客户端
                 bscanInfo.FreqStart = FBOrderInfo.FreqStart;
                 bscanInfo.FreqStop = FBOrderInfo.FreqStop;
                 bscanInfo.FreqStep = FBOrderInfo.FreqStep;
+                bscanInfo.FreqStep = bscanInfo.FreqStep / 1000;
                 bscanInfo.FreqDataCount = xx.Length;
                 bscanInfo.Freqs = xx;
                 for(int i=0;i<bscanInfo.Freqs.Length; i++)
@@ -73,7 +77,12 @@ namespace DSG东莞路测客户端
                 }
                 //Stopwatch sp = new Stopwatch();
                 //sp.Start();
-                while (!mTask.IsCancelled())
+                string guid = Guid.NewGuid().ToString();
+                lock (freqOrderGuidlock)
+                {
+                    freqOrderGuid= guid;
+                }                             
+                while (!mTask.IsCancelled() && guid== freqOrderGuid)
                 {
                     NormalResponse np = TekApi.GetFreqBscanInfo(maxTracePoint, xx.Length);
                     if (!np.result)
@@ -84,7 +93,7 @@ namespace DSG东莞路测客户端
                     if (np.msg == "wait" || np.data == null) continue;
                     double[] yy = np.Parse<double[]>();
                     bscanInfo.FreqValues = yy;
-                    OnNewFreq?.Invoke(bscanInfo);
+                    OnNewFreq?.Invoke(bscanInfo.Copy());
                 }
             });
             mTask.Start();

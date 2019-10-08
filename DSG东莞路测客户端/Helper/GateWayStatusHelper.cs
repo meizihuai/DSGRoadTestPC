@@ -98,6 +98,7 @@ namespace DSG东莞路测客户端.Helper
                         //  Log("<Send> buffer is null");
                     }
                     udpClient.Send(buffer, buffer.Length, remoteIpEndPoint);
+                    File.WriteAllBytes("test.bin", buffer);
                     //  Log("<Send>" + buffer.Length + " bytes");
                 }
                 catch (Exception e)
@@ -138,21 +139,23 @@ namespace DSG东莞路测客户端.Helper
                                 GateWayStatusInfo gateWayStatusInfo = new GateWayStatusInfo();
                                 foreach (string kv in paras)
                                 {
-                                    string key = kv.Split('=')[0];
-                                    string value = kv.Split('=')[1];
-                                    if (key == "swnet") gateWayStatusInfo.net = value;
-                                    if (key == "swpow") gateWayStatusInfo.power = value;
-                                    if (key == "longitude") gateWayStatusInfo.lon = double.Parse(value);
-                                    if (key == "latitude") gateWayStatusInfo.lat = double.Parse(value);
-                                    if (key == "voltage")
+                                    if (kv.Contains("="))
                                     {
-                                        // OnUdpVoltageInfo(value);
-                                        gateWayStatusInfo.voltage = double.Parse(value);
+                                        string key = kv.Split('=')[0];
+                                        string value = kv.Split('=')[1];
+                                        if (key == "swnet") gateWayStatusInfo.net = value;
+                                        if (key == "swpow") gateWayStatusInfo.power = value;
+                                        if (key == "longitude") gateWayStatusInfo.lon = double.Parse(value);
+                                        if (key == "latitude") gateWayStatusInfo.lat = double.Parse(value);
+                                        if (key == "voltage")
+                                        {
+                                            // OnUdpVoltageInfo(value);
+                                            gateWayStatusInfo.voltage = double.Parse(value);
+                                        }
                                     }
                                 }
                                 OnGateWayStatusInfo(gateWayStatusInfo);
                             }
-
                         }
                     }
                 }

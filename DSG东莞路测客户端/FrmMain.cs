@@ -17,7 +17,7 @@ namespace DSG东莞路测客户端
 {
     public partial class FrmMain : Form
     {
-        private readonly string title = "东莞路测客户端 V1.0.0";
+        private readonly string title = "东莞路测客户端 V1.0.1.4";
         private MChart chart;
         private BMap map;
         private TekDevice tekDevice;
@@ -35,6 +35,8 @@ namespace DSG东莞路测客户端
         }
         private void Init()
         {
+            txtIp.Text = "192.168.12.1";
+            txtPort.Text = "3206";
             chart = new MChart();
             panel4.Controls.Add(chart);
 
@@ -62,13 +64,13 @@ namespace DSG东莞路测客户端
         {
             if (gateWayStatusInfo == null) return;
             lblGps.Text = gateWayStatusInfo.lon + "," + gateWayStatusInfo.lat;
-            PointLatLng point = new PointLatLng(gateWayStatusInfo.lon, gateWayStatusInfo.lat);
+            PointLatLng point = new PointLatLng(gateWayStatusInfo.lat, gateWayStatusInfo.lon);
             point = ConvertGPS.Gps84_To_bd09(point);
             double lon = point.Lng;
             double lat = point.Lat;
             map.ClearAll();
-            map.SetCenter(lon, lat, 15);
-            map.AddPoint(lon, lat, "我的位置", "Tek");
+            map.SetCenter(lon, lat, 20);
+            map.AddFreqGisPoint(lon, lat, "我的位置","Tek","01",true);
         }
 
         private void Log(string str)
@@ -148,11 +150,16 @@ namespace DSG东莞路测客户端
             tekDevice?.StopWork();
         }
 
-        private void TekDevice_OnNewFreq(FreqBscanInfo obj)
+        private void TekDevice_OnNewFreq(FreqBscanInfo freq)
         {
             //string json = JsonConvert.SerializeObject(obj, Formatting.Indented);
             //File.WriteAllText("123.json", json);
-            Module.RunUi(this,() => chart.ShowFreq(obj));          
+           // Log($"调整前 {freq.FreqStart},{freq.FreqStop},{freq.FreqStep},{freq.FreqDataCount}");
+           // File.WriteAllText("before.json", JsonConvert.SerializeObject(freq));
+            freq.DoReduce();
+           // File.WriteAllText("after.json", JsonConvert.SerializeObject(freq));
+           // Log($"调整后 {freq.FreqStart},{freq.FreqStop},{freq.FreqStep},{freq.FreqDataCount}");
+            Module.RunUi(this,() => chart.ShowFreq(freq));          
         }
 
     }
