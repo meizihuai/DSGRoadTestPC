@@ -93,7 +93,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Classes\API.cs" />
+    <Compile Include="Classes\FreqGisFileWritter.cs" />
     <Compile Include="Classes\TekDevice.cs" />
+    <Compile Include="FrmLonLatInputBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmLonLatInputBox.Designer.cs">
+      <DependentUpon>FrmLonLatInputBox.cs</DependentUpon>
+    </Compile>
     <Compile Include="Helper\GateWayStatusHelper.cs" />
     <Compile Include="Helper\HttpHelper.cs" />
     <Compile Include="Classes\MTask.cs" />
@@ -137,6 +144,9 @@
     <Compile Include="ThuInject\PrimaryAttribute.cs" />
     <Compile Include="ThuInject\ServiceBean.cs" />
     <Compile Include="ThuInject\ServiceFactory.cs" />
+    <EmbeddedResource Include="FrmLonLatInputBox.resx">
+      <DependentUpon>FrmLonLatInputBox.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FrmMain.resx">
       <DependentUpon>FrmMain.cs</DependentUpon>
     </EmbeddedResource>

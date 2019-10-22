@@ -17,10 +17,13 @@ namespace DSG东莞路测客户端
 {
     public partial class FrmMain : Form
     {
-        private readonly string title = "东莞路测客户端 V1.0.1.4";
+        private readonly string title = "东莞路测客户端 V1.0.2.1";
         private MChart chart;
         private BMap map;
         private TekDevice tekDevice;
+        private double mLon, mLat;
+        private FreqGisFileWritter freqGisFileWritter;
+        public bool flagHaveManualGps = false;
         public FrmMain()
         {
             InitializeComponent();
@@ -29,8 +32,24 @@ namespace DSG东莞路测客户端
 
         private void FrmMain_Load(object sender, EventArgs e)
         {
+          
             this.Text = title;
             Control.CheckForIllegalCrossThreadCalls = false;
+            linkLabel1.Click += (a, b) =>
+            {
+                new FrmLonLatInputBox((lon,lat)=>
+                {
+                    mLon = lon;
+                    mLat = lat;
+                    flagHaveManualGps = true;
+                    lblGps.Text = $"{mLon},{mLat}  (手动)";
+
+                    map.ClearAll();
+                    map.SetCenter(lon, lat, 20);
+                    map.AddPoint(lon, lat, "我的位置");
+
+                }).Show();
+            };
             Init();
         }
         private void Init()
@@ -54,6 +73,7 @@ namespace DSG东莞路测客户端
                 string ip = txtIp.Text;
                 int port = int.Parse(txtPort.Text);
                 GateWayStatusHelper gateWayStatusHelper = new GateWayStatusHelper(ip, port, 4516);
+               
                 gateWayStatusHelper.OnGateWayStatusInfo += GateWayStatusHelper_OnGateWayStatusInfo;
                 gateWayStatusHelper.StartWork();
                 lblGps.Text = "已开启模块，等待GPS数据...";
@@ -68,12 +88,15 @@ namespace DSG东莞路测客户端
             point = ConvertGPS.Gps84_To_bd09(point);
             double lon = point.Lng;
             double lat = point.Lat;
-            map.ClearAll();
+            if (lon <=100 || lat <= 20) return;
+            if (lon >= 200 || lat >= 40) return;
+            mLon = lon;
+            mLat = lat;
             map.SetCenter(lon, lat, 20);
-            map.AddFreqGisPoint(lon, lat, "我的位置","Tek","01",true);
+            map.AddFreqGisPoint(lon, lat, "我的位置","Tek","01",true);          
         }
 
-        private void Log(string str)
+        public void Log(string str)
         {
             listBox1.Items.Add(str);
             listBox1.SelectedIndex = listBox1.Items.Count - 1;
@@ -152,14 +175,51 @@ namespace DSG东莞路测客户端
 
         private void TekDevice_OnNewFreq(FreqBscanInfo freq)
         {
-            //string json = JsonConvert.SerializeObject(obj, Formatting.Indented);
-            //File.WriteAllText("123.json", json);
-           // Log($"调整前 {freq.FreqStart},{freq.FreqStop},{freq.FreqStep},{freq.FreqDataCount}");
-           // File.WriteAllText("before.json", JsonConvert.SerializeObject(freq));
-            freq.DoReduce();
-           // File.WriteAllText("after.json", JsonConvert.SerializeObject(freq));
-           // Log($"调整后 {freq.FreqStart},{freq.FreqStop},{freq.FreqStep},{freq.FreqDataCount}");
-            Module.RunUi(this,() => chart.ShowFreq(freq));          
+            try
+            {
+                lblOrder.Text = $"[{freq.FreqStart},{freq.FreqStop}] {freq.FreqStep*1000} KHz";
+
+                if (freqGisFileWritter == null)
+                {
+                    int.TryParse(txtId.Text, out int id);
+                    freqGisFileWritter = new FreqGisFileWritter(id,freq.FreqStart, freq.FreqStop, freq.FreqStep);
+                    txtFileName.Text = freqGisFileWritter.FileName;
+                    txtPath.Text = freqGisFileWritter.WritePath;
+                    freqGisFileWritter.OnNewFile += (fileName, filePath) =>
+                    {
+                        txtFileName.Text = fileName;
+                        txtPath.Text = filePath;
+                        FileInfo fileInfo = new FileInfo(Path.Combine(filePath, fileName));
+                        if (fileInfo.Exists)
+                            txtLength.Text = GetLength(fileInfo.Length);
+                        else
+                            txtLength.Text = "0";
+                    };
+                    freqGisFileWritter.OnFileLengthChange += (length) =>
+                    {
+                        Module.RunUi(this, () =>
+                        {
+                            txtLength.Text = GetLength(length);
+                        });
+                    };
+                }
+                freqGisFileWritter.WriteFreq(freq.Copy(), mLon, mLat);
+                
+                freq.DoReduce();
+                Module.RunUi(this, () => chart.ShowFreq(freq));
+            }
+            catch (Exception e)
+            {
+                File.WriteAllText("error.txt", e.ToString());
+            }
+                   
+        }
+        private string GetLength(long len)
+        {
+            if (len < 1024) return len.ToString();
+            if (len < 1024 * 1024) return ((double)len / 1024).ToString("0.00") + "KB";
+            if (len < 1024 * 1024*1024) return ((double)len / (1024 * 1024)).ToString("0.00") + "MB";
+            return (len / (1024 * 1024*1024)).ToString("0.0") + "GB";
         }
 
     }

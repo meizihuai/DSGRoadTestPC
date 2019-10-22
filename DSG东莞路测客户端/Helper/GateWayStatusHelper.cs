@@ -51,6 +51,22 @@ namespace DSG东莞路测客户端.Helper
             udpClientThread = new Thread(StartUdpRecive);
             udpClientThread.IsBackground = true;
             udpClientThread.Start();
+
+            //Task.Run(async()=>
+            //{
+            //    double lon = 113.456789;
+            //    double lat = 23.456789;
+            //    while (true)
+            //    {
+            //        GateWayStatusInfo info = new GateWayStatusInfo();
+            //        lon += 0.0001;
+            //        lat += 0.0001;
+            //        info.lon = lon;
+            //        info.lat = lat;
+            //        OnGateWayStatusInfo(info);
+            //        await Task.Delay(1000);
+            //    }
+            //});          
         }
         public void StopWork()
         {
@@ -95,11 +111,12 @@ namespace DSG东莞路测客户端.Helper
                     byte[] buffer = tmg.Tssmsg2byte(tm);
                     if (buffer == null)
                     {
-                        //  Log("<Send> buffer is null");
+                       //  Module.Log("<Send> buffer is null");
                     }
+                   
                     udpClient.Send(buffer, buffer.Length, remoteIpEndPoint);
-                    File.WriteAllBytes("test.bin", buffer);
-                    //  Log("<Send>" + buffer.Length + " bytes");
+                   // File.WriteAllBytes("test.bin", buffer);
+                   // Log("<Send>" + buffer.Length + " bytes");
                 }
                 catch (Exception e)
                 {
@@ -122,16 +139,18 @@ namespace DSG东莞路测客户端.Helper
                     IPEndPoint rp = new IPEndPoint(IPAddress.Any, 0);
                     byte[] buffer = null;
                     buffer = udpClient.Receive(ref rp);
+                   // Module.Log($"<Rev> buffer.length={buffer.Length}");
                     string thisRemoteIp = rp.Address.ToString();
                     if (thisRemoteIp == remoteIp)
                     {
                         TssMsg tm = tmg.Byte2tssmsg(buffer);
-                        // Log(tm.datatype + "," + tm.functype + "," + tm.canshuqu);
+                        //Module.Log(tm.datatype + "," + tm.functype + "," + tm.canshuqu);
                         if (tm.datatype == "Data" && tm.functype == "heartbeat")
                         {
                             string msg = tm.canshuqu;
                             string str = msg.Replace("<", "").Replace(">", "");
                             string headFunc = str.Split(':')[0];
+                         
                             if (headFunc == "heartbeat")
                             {
                                 //  OnUdpHeartBeat(tm.canshuqu);
